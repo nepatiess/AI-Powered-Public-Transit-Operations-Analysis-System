@@ -1,46 +1,12 @@
 # AI Destekli Toplu Taşıma Operasyon Analiz Sistemi
-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-Staj bitirme projesi kapsamında geliştirilen; toplu taşıma operasyon verilerinden araç, hat, durak ve sefer bazlı problemleri tespit eden, sonuçları REST API üzerinden sunan ve Google Gemini ile analiz/özetleme yapabilen uçtan uca bir sistemdir.
 
-Sistem ayrıca doğal dilde sorulan sorulardan güvenli SQL sorguları üreterek SQL Server üzerinde read-only kullanıcı ile çalıştırabilmektedir.
+- Staj bitirme projesi kapsamında geliştirilen; toplu taşıma operasyon verilerinden araç, hat, durak ve sefer bazlı problemleri tespit eden, sonuçları REST API üzerinden sunan ve Google Gemini ile analiz/özetleme yapabilen uçtan uca bir sistemdir.
+
+- Sistem ayrıca doğal dilde sorulan sorulardan güvenli SQL sorguları üreterek SQL Server üzerinde read-only kullanıcı ile çalıştırabilmektedir.
 
 ## Mimari
 
-```text
-SQL Server (PublicTransportDB)
-        │
-        ▼
-Python Veri / İş Mantığı
-(database.py)
-        │
-        ▼
-FastAPI REST API
-(main.py)
-        │
-        ├──────────────► Anomali Analizi
-        │
-        ├──────────────► Gemini AI Özetleme
-        │                 (ai_summary.py)
-        │
-        └──────────────► Natural Language → SQL
-                          (nl_sql.py)
-                                │
-                                ▼
-                       SQL Validation Layer
-                       - SELECT-only
-                       - Table allow-list
-                       - Column allow-list
-                       - TOP 100
-                       - Query timeout
-                       - SQL logging
-                                │
-                                ▼
-                       Read-only SQL User
-
-        ▼
-Streamlit Dashboard
-(app.py)
-```
+<img src="https://raw.githubusercontent.com/nepatiess/AI-Powered-Public-Transit-Operations-Analysis-System/refs/heads/main/diagrams/Project's%20Architecture.png" >
 
 ## Teknolojiler
 
@@ -56,28 +22,7 @@ Streamlit Dashboard
 
 ## Proje Yapısı
 
-```text
-.
-├── ai_summary.py
-├── app.py
-├── database.py
-├── DB_Tables.sql
-├── ExamplesData.sql
-├── Indexes.sql
-├── main.py
-├── nl_sql.py
-├── Queries.sql
-├── sp_DailyAnomalyReport.sql
-├── test_api_query.py
-├── test_db.py
-├── test_nl_sql.py
-├── requirements.txt
-├── README.md
-├── .env.example
-└── .gitignore
-```
-
-Çalışma sırasında oluşan `.env`, `logs/`, `__pycache__/` ve `.pytest_cache/` gibi dosya ve klasörler Git repository'sine dahil edilmez.
+<img src="https://raw.githubusercontent.com/nepatiess/AI-Powered-Public-Transit-Operations-Analysis-System/refs/heads/main/diagrams/Project%20Structure.png" >
 
 ## Veritabanı
 
@@ -93,7 +38,7 @@ Temel tablolar:
 | `StopPassages` | Sefer sırasında gerçekleşen durak geçişleri |
 | `VehicleLocations` | Araçların GPS kayıtları |
 
-Veriler proje kapsamında test ve analiz amacıyla oluşturulmuş sentetik verilerdir. Gerçek İETT operasyon verisi kullanılmamaktadır.
+Veriler proje kapsamında test ve analiz amacıyla oluşturulmuş sentetik verilerdir.
 
 ## SQL Çalışmaları
 
@@ -120,8 +65,6 @@ CREATE NONCLUSTERED INDEX IX_VehicleLocations_LicensePlate_RecordedAt
 ON VehicleLocations (LicensePlate, RecordedAt)
 INCLUDE (Latitude, Longitude, SpeedKmh);
 ```
-
-Index öncesinde sorgu planında `Clustered Index Scan` ve `Sort` kullanılırken, index sonrasında `Index Seek` kullanılmış ve ayrıca `Sort` işlemine ihtiyaç kalmamıştır.
 
 ## Anomali Tespitleri
 
@@ -176,7 +119,7 @@ http://127.0.0.1:8000/docs
 
 Google Gemini iki farklı amaçla kullanılmaktadır.
 
-### Operasyon Özeti ve Soru-Cevap
+### 1. Operasyon Özeti ve Soru-Cevap
 
 `ai_summary.py` üzerinden uygulamanın oluşturduğu structured data Gemini'ye gönderilir.
 
@@ -190,7 +133,7 @@ için kullanılır.
 
 Bu aşamada Gemini doğrudan veritabanına erişmez.
 
-### Natural Language → SQL
+### 2. Natural Language → SQL
 
 `nl_sql.py`, kullanıcının doğal dilde sorduğu sorudan SQL Server sorgusu oluşturur.
 
@@ -244,8 +187,6 @@ kullanıcısıyla çalıştırılır.
 
 Bu kullanıcı yalnızca veri okuma yetkisine sahiptir. `INSERT`, `UPDATE`, `DELETE` ve `EXECUTE` işlemleri için yetkisi bulunmamaktadır.
 
-Böylece uygulama seviyesindeki SQL validation'a ek olarak database seviyesinde de ikinci bir güvenlik katmanı sağlanır.
-
 ## SQL Logging
 
 Doğrulanan ve çalıştırılan AI-generated SQL sorguları:
@@ -255,8 +196,6 @@ logs/nl_sql.log
 ```
 
 dosyasına yazılır.
-
-Log dosyaları `.gitignore` içerisinde bulunduğu için GitHub repository'sine gönderilmez.
 
 ## Testler
 
@@ -301,20 +240,7 @@ pip install -r requirements.txt
 
 `database.py` içerisindeki SQL Server ve database bilgilerini kendi ortamına göre düzenle.
 
-### 3. Environment Variables
-
-`.env.example` dosyasını kopyalayarak `.env` oluştur:
-
-```text
-GEMINI_API_KEY=your_api_key_here
-
-NL_SQL_DB_USER=PublicTransportReader
-NL_SQL_DB_PASSWORD=your_readonly_database_password
-```
-
-Gerçek `.env` dosyası Git repository'sine gönderilmemelidir.
-
-### 4. API'yi çalıştır
+### 3. API'yi çalıştır
 
 ```bash
 uvicorn main:app --reload
@@ -326,7 +252,7 @@ Swagger:
 http://127.0.0.1:8000/docs
 ```
 
-### 5. Dashboard'u çalıştır
+### 4. Dashboard'u çalıştır
 
 İkinci terminalde:
 
@@ -354,61 +280,3 @@ streamlit
 requests
 sqlglot
 ```
-
-## Güvenlik
-
-Gerçek API key ve database password bilgileri yalnızca `.env` içerisinde tutulur.
-
-Aşağıdaki dosya ve klasörler GitHub'a gönderilmez:
-
-```text
-.env
-logs/
-*.log
-.venv/
-venv/
-__pycache__/
-.pytest_cache/
-```
-
-`.env.example` yalnızca örnek değişken isimlerini içerir ve gerçek credential içermez.
-
-## Mevcut Durum
-
-Projenin temel uçtan uca akışı tamamlanmıştır:
-
-```text
-SQL Server
-    ↓
-Anomali Tespiti
-    ↓
-FastAPI
-    ↓
-Gemini AI
-    ↓
-Streamlit Dashboard
-```
-
-Buna ek olarak ileri seviye Natural Language → SQL akışı:
-
-```text
-Kullanıcı Sorusu
-    ↓
-Gemini
-    ↓
-SQL Üretimi
-    ↓
-SQLGlot Validation
-    ↓
-Allow-list / SELECT-only / TOP 100
-    ↓
-Read-only SQL User
-    ↓
-SQL Server
-    ↓
-Sonuç
-    ↓
-AI Özeti
-```
-
-şeklinde çalışmaktadır.
