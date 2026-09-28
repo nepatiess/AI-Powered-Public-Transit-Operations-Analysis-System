@@ -1,5 +1,5 @@
 # AI Destekli Toplu Taşıma Operasyon Analiz Sistemi
-
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 Staj bitirme projesi kapsamında geliştirilen; toplu taşıma operasyon verilerinden araç, hat, durak ve sefer bazlı problemleri tespit eden, sonuçları REST API üzerinden sunan ve Google Gemini ile analiz/özetleme yapabilen uçtan uca bir sistemdir.
 
 Sistem ayrıca doğal dilde sorulan sorulardan güvenli SQL sorguları üreterek SQL Server üzerinde read-only kullanıcı ile çalıştırabilmektedir.
