@@ -1,50 +1,50 @@
-# AI Destekli Toplu Taşıma Operasyon Analiz Sistemi
+# AI-Powered Public Transportation Operations Analysis System
 
-- Staj bitirme projesi kapsamında geliştirilen; toplu taşıma operasyon verilerinden araç, hat, durak ve sefer bazlı problemleri tespit eden, sonuçları REST API üzerinden sunan ve Google Gemini ile analiz/özetleme yapabilen uçtan uca bir sistemdir.
+- This is an end-to-end system developed as an internship graduation project. It detects vehicle-, route-, stop-, and trip-based problems from public transportation operational data, exposes the results through a REST API, and performs analysis and summarization using Google Gemini.
 
-- Sistem ayrıca doğal dilde sorulan sorulardan güvenli SQL sorguları üreterek SQL Server üzerinde read-only kullanıcı ile çalıştırabilmektedir.
+- The system can also generate secure SQL queries from natural language questions and execute them on SQL Server using a read-only database user.
 
-## Mimari
+## Architecture
 
-<img src="https://raw.githubusercontent.com/nepatiess/AI-Powered-Public-Transit-Operations-Analysis-System/refs/heads/main/diagrams/Project's%20Architecture.png" >
+<img src="https://raw.githubusercontent.com/nepatiess/AI-Powered-Public-Transit-Operations-Analysis-System/refs/heads/main/diagrams/Project's%20Architecture.png">
 
-## Teknolojiler
+## Technologies
 
-- **Veritabanı:** SQL Server
+- **Database:** SQL Server
 - **SQL:** T-SQL, JOIN, CTE, Window Functions, GROUP BY, CASE, Temp Table, Stored Procedure
 - **Backend:** Python, FastAPI
 - **Database Connection:** pyodbc
-- **Yapay Zekâ:** Google Gemini API
+- **Artificial Intelligence:** Google Gemini API
 - **NL→SQL Validation:** SQLGlot
 - **Dashboard:** Streamlit
-- **Test:** pytest, FastAPI TestClient
+- **Testing:** pytest, FastAPI TestClient
 - **Environment Management:** python-dotenv
 
-## Proje Yapısı
+## Project Structure
 
 <p align="left">
   <img src="https://raw.githubusercontent.com/nepatiess/AI-Powered-Public-Transit-Operations-Analysis-System/refs/heads/main/diagrams/Project%20Structure.png" width="300" alt="Project Structure">
 </p>
 
-## Veritabanı
+## Database
 
-Proje `PublicTransportDB` veritabanını kullanır.
+The project uses the `PublicTransportDB` database.
 
-Temel tablolar:
+Main tables:
 
-| Tablo | Açıklama |
+| Table | Description |
 |---|---|
-| `Routes_` | Hat bilgileri |
-| `RouteStops` | Hatların durak ve durak sırası bilgileri |
-| `ValidatorTrips` | Araçların gerçekleştirdiği seferler |
-| `StopPassages` | Sefer sırasında gerçekleşen durak geçişleri |
-| `VehicleLocations` | Araçların GPS kayıtları |
+| `Routes_` | Route information |
+| `RouteStops` | Stops and stop sequence information for routes |
+| `ValidatorTrips` | Trips performed by vehicles |
+| `StopPassages` | Stop passages recorded during trips |
+| `VehicleLocations` | GPS records of vehicles |
 
-Veriler proje kapsamında test ve analiz amacıyla oluşturulmuş sentetik verilerdir.
+The data used in the project is synthetic data generated for testing and analysis purposes.
 
-## SQL Çalışmaları
+## SQL Studies
 
-Proje kapsamında aşağıdaki SQL konuları uygulanmıştır:
+The following SQL concepts and techniques were applied throughout the project:
 
 - JOIN
 - CTE
@@ -53,14 +53,14 @@ Proje kapsamında aşağıdaki SQL konuları uygulanmıştır:
 - CASE
 - Temp Table
 - Stored Procedure
-- Index analizi
-- Execution Plan analizi
+- Index analysis
+- Execution Plan analysis
 
-SQL sorguları `Queries.sql`, index çalışmaları `Indexes.sql`, günlük anomali raporu Stored Procedure'ü ise `sp_DailyAnomalyReport.sql` içerisinde bulunmaktadır.
+SQL queries are located in `Queries.sql`, index-related studies are located in `Indexes.sql`, and the daily anomaly report Stored Procedure is located in `sp_DailyAnomalyReport.sql`.
 
-### Index Optimizasyonu
+### Index Optimization
 
-`VehicleLocations` tablosunda plaka ve zaman bazlı GPS sorgularını hızlandırmak amacıyla aşağıdaki yapıda covering nonclustered index kullanılmıştır:
+A covering nonclustered index with the following structure was created on the `VehicleLocations` table to improve the performance of license plate- and time-based GPS queries:
 
 ```sql
 CREATE NONCLUSTERED INDEX IX_VehicleLocations_LicensePlate_RecordedAt
@@ -68,84 +68,82 @@ ON VehicleLocations (LicensePlate, RecordedAt)
 INCLUDE (Latitude, Longitude, SpeedKmh);
 ```
 
-## Anomali Tespitleri
+## Anomaly Detection
 
-### Durak Atlama
+### Skipped Stop
 
-Bir seferin geçmesi gereken duraklar `RouteStops`, gerçekleşen geçişler ise `StopPassages` üzerinden karşılaştırılır.
+The expected stops for a trip are retrieved from `RouteStops` and compared with the actual stop passages stored in `StopPassages`.
 
-Beklenen bir durağın geçiş kaydı bulunmuyorsa `STOP_SKIPPED` anomalisi oluşturulur.
+If an expected stop does not have a corresponding passage record, a `STOP_SKIPPED` anomaly is generated.
 
-### Anormal Sefer Süresi
+### Abnormal Trip Duration
 
-Gerçekleşen sefer süresi hattın `NormalDuration` değerinin %20 üzerinde olduğunda anormal süre olarak değerlendirilir.
+A trip is considered to have an abnormal duration when its actual duration exceeds the route's `NormalDuration` value by more than 20%.
 
-Anomali tipi:
+Anomaly type:
 
 ```text
 ABNORMAL_DURATION
 ```
 
-### GPS Kayıt Boşluğu
+### GPS Record Gap
 
-Aynı aracın ardışık GPS kayıtları `LAG()` Window Function kullanılarak karşılaştırılır.
+Consecutive GPS records belonging to the same vehicle are compared using the `LAG()` Window Function.
 
-İki GPS kaydı arasında 20 dakikadan fazla fark bulunması durumunda GPS problemi oluşturulur.
+A GPS problem is detected when the time difference between two consecutive GPS records is greater than 20 minutes.
 
-### GPS Sessizliği
+### GPS Silence
 
-Bir aracın son GPS kaydından itibaren 20 dakikadan fazla kayıt göndermediği durumlar ayrıca tespit edilir.
+Cases where a vehicle has not sent a new GPS record for more than 20 minutes after its latest GPS record are also detected.
 
-Sentetik/historical veri kullanıldığı için karşılaştırmada sistem saati yerine dataset içerisindeki en güncel `RecordedAt` değeri referans alınır.
+Since the project uses synthetic/historical data, the latest `RecordedAt` value in the dataset is used as the reference time instead of the current system time.
 
-## API Endpoint'leri
+## API Endpoints
 
-| Method | Endpoint | Açıklama |
+| Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/routes` | Hatları listeler |
-| GET | `/api/routes/{routeCode}/problems` | Hat üzerindeki anomalileri getirir |
-| GET | `/api/routes/{routeCode}/summary` | Hat istatistiklerini ve AI özetini getirir |
-| GET | `/api/routes/{routeCode}/ask?soru=...` | Mevcut hat/anomali verisine göre AI ile soru-cevap yapar |
-| GET | `/api/vehicles/{plate}` | Araç bilgilerini ve anomalilerini getirir |
-| GET | `/api/stops/{stopId}` | Durak bazlı atlanma istatistiklerini getirir |
-| GET | `/api/anomalies` | Tüm anomalileri getirir |
-| POST | `/api/query` | Doğal dildeki soruyu güvenli SQL sorgusuna dönüştürerek çalıştırır |
+| GET | `/api/routes` | Lists all routes |
+| GET | `/api/routes/{routeCode}/problems` | Returns anomalies for a specific route |
+| GET | `/api/routes/{routeCode}/summary` | Returns route statistics and an AI-generated summary |
+| GET | `/api/routes/{routeCode}/ask?soru=...` | Performs AI-based question answering using the existing route/anomaly data |
+| GET | `/api/vehicles/{plate}` | Returns vehicle information and anomalies |
+| GET | `/api/stops/{stopId}` | Returns stop-based skipped-stop statistics |
+| GET | `/api/anomalies` | Returns all anomalies |
+| POST | `/api/query` | Converts a natural language question into a secure SQL query and executes it |
 
-Swagger dokümantasyonu:
+Swagger documentation:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-## Yapay Zekâ Entegrasyonu
+## Artificial Intelligence Integration
 
-Google Gemini iki farklı amaçla kullanılmaktadır.
+Google Gemini is used for two different purposes.
 
-### 1. Operasyon Özeti ve Soru-Cevap
+### 1. Operational Summary and Question Answering
 
-`ai_summary.py` üzerinden uygulamanın oluşturduğu structured data Gemini'ye gönderilir.
+Through `ai_summary.py`, structured data generated by the application is sent to Gemini.
 
-Bu yapı:
+This structure is used for:
 
-- hat özetlerinin oluşturulması,
-- anomali verilerinin yorumlanması,
-- hat hakkında doğal dilde soru sorulması
+- generating route summaries,
+- interpreting anomaly data,
+- answering natural language questions about a route.
 
-için kullanılır.
-
-Bu aşamada Gemini doğrudan veritabanına erişmez.
+At this stage, Gemini does not directly access the database.
 
 ### 2. Natural Language → SQL
 
-`nl_sql.py`, kullanıcının doğal dilde sorduğu sorudan SQL Server sorgusu oluşturur.
+`nl_sql.py` generates SQL Server queries from questions entered by the user in natural language.
 
-Örnek soru:
+Example question:
 
 ```text
-En fazla sefer yapan 5 aracı göster.
+Show the 5 vehicles with the highest number of trips.
 ```
 
-Üretilebilecek SQL:
+Example generated SQL:
 
 ```sql
 SELECT TOP 5
@@ -156,93 +154,89 @@ GROUP BY LicensePlate
 ORDER BY TotalTrips DESC;
 ```
 
-SQL doğrudan çalıştırılmadan önce güvenlik katmanından geçirilir.
+Before the generated SQL is executed, it passes through a security validation layer.
 
-## NL→SQL Güvenliği
+## NL→SQL Security
 
-AI tarafından oluşturulan SQL'e doğrudan güvenilmez.
+SQL generated by the AI is never trusted or executed directly.
 
-Aşağıdaki kontroller uygulanmaktadır:
+The following security controls are applied:
 
-- Sadece `SELECT` sorgularına izin verilir.
-- `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`, `CREATE`, `TRUNCATE`, `MERGE`, `EXEC`, `GRANT`, `REVOKE` ve benzeri komutlar engellenir.
-- Sadece allow-list içerisinde bulunan tablolar kullanılabilir.
-- Sadece allow-list içerisinde bulunan kolonlar kullanılabilir.
-- `SELECT *` kullanımına izin verilmez.
-- Birden fazla SQL statement çalıştırılması engellenir.
-- SQL, SQLGlot ile parse edilerek kontrol edilir.
-- Sonuç sayısı maksimum `TOP 100` ile sınırlandırılır.
-- AI daha yüksek bir `TOP` değeri üretirse maksimum `TOP 100` olacak şekilde sınırlandırılır.
-- Sorgular ayrı bir read-only SQL Server kullanıcısı üzerinden çalıştırılır.
-- Query timeout uygulanır.
-- Çalıştırılan SQL sorguları loglanır.
+- Only `SELECT` queries are allowed.
+- Commands such as `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`, `CREATE`, `TRUNCATE`, `MERGE`, `EXEC`, `GRANT`, and `REVOKE` are blocked.
+- Only tables included in the allow-list can be accessed.
+- Only columns included in the allow-list can be accessed.
+- `SELECT *` is not allowed.
+- Multiple SQL statements are blocked.
+- SQL queries are parsed and validated using SQLGlot.
+- The maximum number of returned rows is limited to `TOP 100`.
+- If the AI generates a higher `TOP` value, it is automatically limited to a maximum of `TOP 100`.
+- Queries are executed through a separate read-only SQL Server user.
+- A query timeout is applied.
+- Executed SQL queries are logged.
 
-### Read-only Database User
+### Read-Only Database User
 
-NL→SQL sorguları normal uygulama bağlantısından ayrı olarak:
+NL→SQL queries are executed using a separate database user:
 
 ```text
 PublicTransportReader
 ```
 
-kullanıcısıyla çalıştırılır.
-
-Bu kullanıcı yalnızca veri okuma yetkisine sahiptir. `INSERT`, `UPDATE`, `DELETE` ve `EXECUTE` işlemleri için yetkisi bulunmamaktadır.
+This user has read-only access to the database. It does not have permission to perform `INSERT`, `UPDATE`, `DELETE`, or `EXECUTE` operations.
 
 ## SQL Logging
 
-Doğrulanan ve çalıştırılan AI-generated SQL sorguları:
+Validated and executed AI-generated SQL queries are written to:
 
 ```text
 logs/nl_sql.log
 ```
 
-dosyasına yazılır.
+## Tests
 
-## Testler
+The NL→SQL security layer is automatically tested using pytest.
 
-NL→SQL güvenlik katmanı pytest ile otomatik olarak test edilmektedir.
+The main test scenarios include:
 
-Test edilen başlıca durumlar:
+- valid SELECT queries,
+- blocking `SELECT *`,
+- blocking unauthorized columns,
+- blocking unauthorized tables,
+- blocking DELETE,
+- blocking UPDATE,
+- blocking multiple statements,
+- allowed JOIN queries,
+- preserving an existing safe TOP value,
+- limiting TOP values greater than `TOP 100`.
 
-- geçerli SELECT sorgusu
-- `SELECT *` engelleme
-- izin verilmeyen kolon
-- izin verilmeyen tablo
-- DELETE engelleme
-- UPDATE engelleme
-- multiple statement engelleme
-- JOIN sorguları
-- mevcut güvenli TOP değerinin korunması
-- `TOP 100` üzerindeki değerlerin sınırlandırılması
+In addition, the `/api/query` endpoint is tested at the API level using FastAPI `TestClient`.
 
-Ayrıca `/api/query` endpointi FastAPI `TestClient` ile API seviyesinde test edilmektedir.
-
-Testleri çalıştırmak için:
+To run all tests:
 
 ```bash
 pytest -v
 ```
 
-NL→SQL unit testlerini ayrı çalıştırmak için:
+To run only the NL→SQL unit tests:
 
 ```bash
 pytest test_nl_sql.py -v
 ```
 
-## Kurulum
+## Installation
 
-### 1. Python paketlerini yükle
+### 1. Install Python Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. SQL Server bağlantısını ayarla
+### 2. Configure the SQL Server Connection
 
-`database.py` içerisindeki SQL Server ve database bilgilerini kendi ortamına göre düzenle.
+Update the SQL Server and database connection information in `database.py` according to your local environment.
 
-### 3. API'yi çalıştır
+### 3. Run the API
 
 ```bash
 uvicorn main:app --reload
@@ -254,9 +248,9 @@ Swagger:
 http://127.0.0.1:8000/docs
 ```
 
-### 4. Dashboard'u çalıştır
+### 4. Run the Dashboard
 
-İkinci terminalde:
+In a second terminal:
 
 ```bash
 streamlit run app.py
@@ -270,7 +264,7 @@ http://localhost:8501
 
 ## requirements.txt
 
-Projede kullanılan Python bağımlılıkları:
+The project uses the following Python dependencies:
 
 ```text
 fastapi
