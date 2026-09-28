@@ -22,7 +22,9 @@
 
 ## Proje Yapısı
 
-<img src="https://raw.githubusercontent.com/nepatiess/AI-Powered-Public-Transit-Operations-Analysis-System/refs/heads/main/diagrams/Project%20Structure.png" width="280" align="left" alt="Project Structure" style="margin-right: 20px;">
+<p align="left">
+  <img src="https://raw.githubusercontent.com/nepatiess/AI-Powered-Public-Transit-Operations-Analysis-System/refs/heads/main/diagrams/Project%20Structure.png" width="300" alt="Project Structure">
+</p>
 
 ## Veritabanı
 
