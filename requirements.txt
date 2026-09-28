@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+pyodbc
+python-dotenv
+google-genai
+streamlit
+requests
+sqlglot
